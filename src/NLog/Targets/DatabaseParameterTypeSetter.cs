@@ -64,7 +64,7 @@ namespace NLog.Targets
         {
             Type propertyType;
             if (string.IsNullOrEmpty(dbTypePropertyName) ||
-                dbTypePropertyName.Equals("dbbType", StringComparison.OrdinalIgnoreCase))
+                dbTypePropertyName.Equals(nameof(IDataParameter.DbType), StringComparison.OrdinalIgnoreCase))
             {
                 _defaultDbProperty = true;
                 propertyType = typeof(DbType);
