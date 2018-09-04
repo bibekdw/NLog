@@ -86,10 +86,11 @@ namespace NLog.Targets
             this.PropertyDbTypeValues = new Dictionary<DatabaseParameterInfo, int>();
             foreach (var par in parameters)
             {
-                if (string.IsNullOrEmpty(par.DbType)) continue;
-             
-                var dbTypeValue = Enum.Parse(propertyType, par.DbType);
-                this.PropertyDbTypeValues[par] = (int)dbTypeValue;
+                if (!string.IsNullOrEmpty(par.DbType))
+                {
+                    var dbTypeValue = Enum.Parse(propertyType, par.DbType);
+                    this.PropertyDbTypeValues[par] = (int) dbTypeValue;
+                }
             }
         }
         /// <summary>
