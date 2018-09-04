@@ -85,6 +85,7 @@ namespace NLog.Targets
     {
         private IDbConnection _activeConnection = null;
         private string _activeConnectionString;
+        private IDatabaseValueConverter _parameterValueConverter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DatabaseTarget" /> class.
@@ -102,7 +103,7 @@ namespace NLog.Targets
             CommandType = CommandType.Text;
             OptimizeBufferReuse = GetType() == typeof(DatabaseTarget);  // Class not sealed, reduce breaking changes
             ParameterDbTypePropertyName = "DbType";
-            ParameterConverterType = typeof(DatabaseParameterConverter);
+            ParameterConverterType = typeof(DatabaseParameterTypeSetter);
         }
 
         /// <summary>
@@ -276,11 +277,22 @@ namespace NLog.Targets
         /// Gets or sets converter type of the SQL command parameter value.
         /// </summary>
         /// <docgen category='SQL Statement' order='13' />
-        [DefaultValue(typeof(DatabaseParameterConverter))]
+        [DefaultValue(typeof(DatabaseParameterTypeSetter))]
         public Type ParameterConverterType { get; set; }
 
         ///<summary>SQL Command Parameter Converter</summary>
-        private DatabaseParameterConverter ParameterConverter { get; set; }
+        public DatabaseParameterTypeSetter ParameterTypeSetter { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public IDatabaseValueConverter ParameterValueConverter
+        {
+            get => _parameterValueConverter ?? DefaultConverter;
+            set => _parameterValueConverter = value;
+        }
+
+        private static readonly IDatabaseValueConverter DefaultConverter = new DatabaseValueConverter();
 
         /// <summary>
         /// Gets the collection of parameters. Each parameter contains a mapping
@@ -656,28 +668,30 @@ namespace NLog.Targets
             }
         }
         /// <summary>
-        /// Set Parameter Type and Value
+        /// Set Parameter Type
         /// </summary>
-        protected void SetParameterInfo(IDbDataParameter p, DatabaseParameterInfo par, string value)
+        protected void SetParameterInfo(IDbDataParameter p, DatabaseParameterInfo par)
         {
             EnsureResolveParameterInfo(p);
-            this.ParameterConverter.SetParameterDbType(p, par);
-            this.ParameterConverter.SetParameterValue(p, par, value);
+            this.ParameterTypeSetter.SetParameterDbType(p, par);
         }
+
+
+
         /// <summary>
         /// Resolve Parameter DbType And Value Converter
         /// </summary>
         protected void EnsureResolveParameterInfo(IDbDataParameter p)
         {
-            if (this.ParameterConverter == null)
+            if (this.ParameterTypeSetter == null)
             {
                 lock (this.SyncRoot)
                 {
-                    if (this.ParameterConverter == null)
+                    if (this.ParameterTypeSetter == null)
                     {
-                        var converter = (DatabaseParameterConverter)Activator.CreateInstance(this.ParameterConverterType);
+                        var converter = (DatabaseParameterTypeSetter)Activator.CreateInstance(this.ParameterConverterType);
                         converter.Resolve(p, this.ParameterDbTypePropertyName, this.Parameters);
-                        this.ParameterConverter = converter;
+                        this.ParameterTypeSetter = converter;
                     }
                 }
             }
@@ -866,22 +880,23 @@ namespace NLog.Targets
                     p.Scale = par.Scale;
                 }
 
-                string stringValue = RenderLogEvent(par.Layout, logEvent);
+                SetParameterInfo(p, par);
 
-                var dbType = par.DbType;
-                if (string.IsNullOrEmpty(dbType))
+                object value;
+                if (par.Layout.TryGetRawValue(logEvent, out var rawValue))
                 {
-                    dbType = "String";
-                    p.Value = stringValue;
+                    value = ParameterValueConverter.ConvertFromObject(rawValue, p.DbType, par.Format);
                 }
                 else
                 {
-                    dbType = par.DbType;
-                    SetParameterInfo(p, par, stringValue);
+                    string stringValue = RenderLogEvent(par.Layout, logEvent);
+                    value = ParameterValueConverter.ConvertFromString(stringValue, p.DbType, par.Format);
                 }
+                InternalLogger.Trace("  DatabaseTarget: Parameter: '{0}' = '{1}' ({2})", p.ParameterName, value, p.DbType);
+                p.Value = value;
                 command.Parameters.Add(p);
 
-                InternalLogger.Trace("  DatabaseTarget: Parameter: '{0}' = '{1}' ({2})", p.ParameterName, stringValue, dbType);
+
             }
         }
 
