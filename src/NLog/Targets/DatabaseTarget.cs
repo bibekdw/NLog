@@ -667,21 +667,12 @@ namespace NLog.Targets
                 transactionScope.Complete();
             }
         }
-        /// <summary>
-        /// Set Parameter Type
-        /// </summary>
-        protected void SetParameterInfo(IDbDataParameter p, DatabaseParameterInfo par)
-        {
-            EnsureResolveParameterInfo(p);
-            this.ParameterTypeSetter.SetParameterDbType(p, par);
-        }
-
 
 
         /// <summary>
         /// Resolve Parameter DbType And Value Converter
         /// </summary>
-        protected void EnsureResolveParameterInfo(IDbDataParameter p)
+        protected void EnsureResolveParameterInfo(IDbCommand command)
         {
             if (this.ParameterTypeSetter == null)
             {
@@ -689,6 +680,7 @@ namespace NLog.Targets
                 {
                     if (this.ParameterTypeSetter == null)
                     {
+                        var p = command.CreateParameter();
                         var converter = (DatabaseParameterTypeSetter)Activator.CreateInstance(this.ParameterConverterType);
                         converter.Resolve(p, this.ParameterDbTypePropertyName, this.Parameters);
                         this.ParameterTypeSetter = converter;
@@ -855,6 +847,12 @@ namespace NLog.Targets
         /// <param name="logEvent">The log event to base the parameter's layout rendering on.</param>
         private void AddParametersToCommand(IDbCommand command, IList<DatabaseParameterInfo> databaseParameterInfos, LogEventInfo logEvent)
         {
+            if (databaseParameterInfos.Count > 0)
+            {
+                //todo move to init?
+                EnsureResolveParameterInfo(command);
+            }
+
             for (int i = 0; i < databaseParameterInfos.Count; ++i)
             {
                 DatabaseParameterInfo par = databaseParameterInfos[i];
@@ -880,7 +878,7 @@ namespace NLog.Targets
                     p.Scale = par.Scale;
                 }
 
-                SetParameterInfo(p, par);
+                ParameterTypeSetter.SetParameterDbType(p, par);
 
                 object value;
                 if (par.Layout.TryGetRawValue(logEvent, out var rawValue))
