@@ -850,6 +850,7 @@ namespace NLog.Targets
             if (databaseParameterInfos.Count > 0)
             {
                 //todo move to init?
+                //todo fixme! AddParametersToCommand also called for installationparameters, so state could be wrong in ParameterTypeSetter 
                 EnsureResolveParameterInfo(command);
             }
 
