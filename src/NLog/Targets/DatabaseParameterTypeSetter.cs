@@ -46,6 +46,8 @@ namespace NLog.Targets
     /// </summary>
     public class DatabaseParameterTypeSetter
     {
+        private bool _defaultDbProperty;
+
         /// <summary>
         /// SQL Command Parameter DbType Property
         /// </summary>
@@ -60,17 +62,33 @@ namespace NLog.Targets
         /// <docgen category='Parameter Options' order='10' />
         public void Resolve(IDbDataParameter p, string dbTypePropertyName, IList<DatabaseParameterInfo> parameters)
         {
-            if (!PropertyHelper.TryGetPropertyInfo(p, dbTypePropertyName, out var dbTypeProperty))
+            Type propertyType;
+            if (string.IsNullOrEmpty(dbTypePropertyName) ||
+                dbTypePropertyName.Equals("dbbType", StringComparison.OrdinalIgnoreCase))
             {
-                throw new NLogConfigurationException(
-                    "Type '" + p.GetType().Name + "' has no property '" + dbTypePropertyName + "'.");
+                _defaultDbProperty = true;
+                propertyType = typeof(DbType);
             }
-            this.DbTypeProperty = dbTypeProperty;
+            else
+            {
+
+                if (!PropertyHelper.TryGetPropertyInfo(p, dbTypePropertyName, out var dbTypeProperty))
+                {
+                    throw new NLogConfigurationException(
+                        "Type '" + p.GetType().Name + "' has no property '" + dbTypePropertyName + "'.");
+                }
+
+                this.DbTypeProperty = dbTypeProperty;
+              
+                propertyType = dbTypeProperty.PropertyType;
+            }
+
             this.PropertyDbTypeValues = new Dictionary<DatabaseParameterInfo, object>();
             foreach (var par in parameters)
             {
                 if (string.IsNullOrEmpty(par.DbType)) continue;
-                var dbTypeValue = Enum.Parse(dbTypeProperty.PropertyType, par.DbType);
+             
+                var dbTypeValue = Enum.Parse(propertyType, par.DbType);
                 this.PropertyDbTypeValues[par] = dbTypeValue;
             }
         }
@@ -81,7 +99,14 @@ namespace NLog.Targets
         {
             if (PropertyDbTypeValues.TryGetValue(par, out var propertyDbTypeValue))
             {
-                this.DbTypeProperty.SetValue(p, propertyDbTypeValue, null);
+                if (_defaultDbProperty)
+                {
+                    p.DbType = (DbType)propertyDbTypeValue;
+                }
+                else
+                {
+                    this.DbTypeProperty.SetValue(p, propertyDbTypeValue, null);
+                }
             }
         }
 
