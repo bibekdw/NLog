@@ -39,7 +39,7 @@ namespace NLog.Targets
     using System.Collections.Generic;
     using System.Data;
     using System.Reflection;
-    using NLog.Internal;
+    using Internal;
 
     /// <summary>
     /// Set dbType on correct property (e.g. DbType, OleDbType, etc)
@@ -51,11 +51,12 @@ namespace NLog.Targets
         /// <summary>
         /// SQL Command Parameter DbType Property
         /// </summary>
-        private PropertyInfo DbTypeProperty { get; set; }
+        private PropertyInfo _dbTypeProperty;
+
         /// <summary>
         /// SQL Command Parameter instance DbType Property Values
         /// </summary>
-        private Dictionary<DatabaseParameterInfo, int> PropertyDbTypeValues { get; set; }
+        private Dictionary<DatabaseParameterInfo, int> _propertyDbTypeValues;
         /// <summary>
         /// Resolve Parameter DbType Property and DbType Value
         /// </summary>
@@ -71,25 +72,25 @@ namespace NLog.Targets
             }
             else
             {
-
+                _defaultDbProperty = false;
                 if (!PropertyHelper.TryGetPropertyInfo(p, dbTypePropertyName, out var dbTypeProperty))
                 {
                     throw new NLogConfigurationException(
                         "Type '" + p.GetType().Name + "' has no property '" + dbTypePropertyName + "'.");
                 }
 
-                this.DbTypeProperty = dbTypeProperty;
-              
+                _dbTypeProperty = dbTypeProperty;
+
                 propertyType = dbTypeProperty.PropertyType;
             }
 
-            this.PropertyDbTypeValues = new Dictionary<DatabaseParameterInfo, int>();
+            _propertyDbTypeValues = new Dictionary<DatabaseParameterInfo, int>();
             foreach (var par in parameters)
             {
                 if (!string.IsNullOrEmpty(par.DbType))
                 {
                     var dbTypeValue = Enum.Parse(propertyType, par.DbType);
-                    this.PropertyDbTypeValues[par] = (int) dbTypeValue;
+                    _propertyDbTypeValues[par] = (int)dbTypeValue;
                 }
             }
         }
@@ -98,7 +99,7 @@ namespace NLog.Targets
         /// </summary>
         public void SetParameterDbType(IDbDataParameter p, DatabaseParameterInfo par)
         {
-            if (PropertyDbTypeValues.TryGetValue(par, out var dbType))
+            if (_propertyDbTypeValues.TryGetValue(par, out var dbType))
             {
                 if (_defaultDbProperty)
                 {
@@ -106,7 +107,7 @@ namespace NLog.Targets
                 }
                 else
                 {
-                    this.DbTypeProperty.SetValue(p, (DbType) dbType, null);
+                    _dbTypeProperty.SetValue(p, (DbType)dbType, null);
                 }
             }
         }
