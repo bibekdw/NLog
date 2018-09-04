@@ -42,7 +42,7 @@ namespace NLog.Targets
     using NLog.Internal;
 
     /// <summary>
-    /// Represents SQL command parameter converter.
+    /// Set dbType on correct property (e.g. DbType, OleDbType, etc)
     /// </summary>
     public class DatabaseParameterTypeSetter
     {
@@ -55,7 +55,7 @@ namespace NLog.Targets
         /// <summary>
         /// SQL Command Parameter instance DbType Property Values
         /// </summary>
-        private Dictionary<DatabaseParameterInfo, object> PropertyDbTypeValues { get; set; }
+        private Dictionary<DatabaseParameterInfo, int> PropertyDbTypeValues { get; set; }
         /// <summary>
         /// Resolve Parameter DbType Property and DbType Value
         /// </summary>
@@ -83,13 +83,13 @@ namespace NLog.Targets
                 propertyType = dbTypeProperty.PropertyType;
             }
 
-            this.PropertyDbTypeValues = new Dictionary<DatabaseParameterInfo, object>();
+            this.PropertyDbTypeValues = new Dictionary<DatabaseParameterInfo, int>();
             foreach (var par in parameters)
             {
                 if (string.IsNullOrEmpty(par.DbType)) continue;
              
                 var dbTypeValue = Enum.Parse(propertyType, par.DbType);
-                this.PropertyDbTypeValues[par] = dbTypeValue;
+                this.PropertyDbTypeValues[par] = (int)dbTypeValue;
             }
         }
         /// <summary>
@@ -97,15 +97,15 @@ namespace NLog.Targets
         /// </summary>
         public void SetParameterDbType(IDbDataParameter p, DatabaseParameterInfo par)
         {
-            if (PropertyDbTypeValues.TryGetValue(par, out var propertyDbTypeValue))
+            if (PropertyDbTypeValues.TryGetValue(par, out var dbType))
             {
                 if (_defaultDbProperty)
                 {
-                    p.DbType = (DbType)propertyDbTypeValue;
+                    p.DbType = (DbType)dbType;
                 }
                 else
                 {
-                    this.DbTypeProperty.SetValue(p, propertyDbTypeValue, null);
+                    this.DbTypeProperty.SetValue(p, (DbType) dbType, null);
                 }
             }
         }
