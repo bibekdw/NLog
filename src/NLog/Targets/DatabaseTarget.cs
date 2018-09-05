@@ -891,8 +891,9 @@ namespace NLog.Targets
                     string stringValue = RenderLogEvent(par.Layout, logEvent);
                     value = ParameterValueConverter.ConvertFromString(stringValue, p.DbType, par.Format);
                 }
-                InternalLogger.Trace("  DatabaseTarget: Parameter: '{0}' = '{1}' ({2})", p.ParameterName, value, p.DbType);
+               
                 p.Value = value;
+                InternalLogger.Trace("  DatabaseTarget: Parameter: '{0}' = '{1}' ({2})", p.ParameterName, value, p.DbType);
                 command.Parameters.Add(p);
 
 
