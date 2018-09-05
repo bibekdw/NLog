@@ -1359,12 +1359,14 @@ INSERT INTO NLogSqlLiteTestAppNames(Id, Name) VALUES (1, @appName);"">
                   xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' throwExceptions='true'>
                 <targets>
                     <target name='database' xsi:type='Database' connectionstring=""" + connectionString + @"""
-                        commandText='insert into dbo.NLogSqlServerTest (Uid) values (@uid);'>
+                        commandText='insert into dbo.NLogSqlServerTest (Uid, LogDate) values (@uid, @logdate);'>
                         <parameter name='@uid' layout='${event-properties:uid}' />
+                        <parameter name='@logdate' layout='${date}' />
 <install-command ignoreFailures=""false""
                  text=""CREATE TABLE dbo.NLogSqlServerTest (
     Id       int               NOT NULL IDENTITY(1,1) PRIMARY KEY CLUSTERED,
-    Uid      uniqueidentifier  NULL
+    Uid      uniqueidentifier  NULL,
+    LogDate  date              NULL
 );""/>
 
                     </target>
@@ -1399,7 +1401,11 @@ INSERT INTO NLogSqlLiteTestAppNames(Id, Name) VALUES (1, @appName);"">
 
                 var result = SqlServerTest.IssueScalarQuery(isAppVeyor, "SELECT Uid FROM dbo.NLogSqlServerTest");
 
-                Assert.Equal(uid, result);
+                Assert.Equal(uid, result); 
+                
+                var result2 = SqlServerTest.IssueScalarQuery(isAppVeyor, "SELECT LogDate FROM dbo.NLogSqlServerTest");
+
+                Assert.Equal(DateTime.Today, result2);
             }
             finally
             {
