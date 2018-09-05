@@ -103,7 +103,6 @@ namespace NLog.Targets
             CommandType = CommandType.Text;
             OptimizeBufferReuse = GetType() == typeof(DatabaseTarget);  // Class not sealed, reduce breaking changes
             ParameterDbTypePropertyName = "DbType";
-            ParameterConverterType = typeof(DatabaseParameterTypeSetter);
         }
 
         /// <summary>
@@ -273,15 +272,8 @@ namespace NLog.Targets
         [DefaultValue("DbType")]
         public string ParameterDbTypePropertyName { get; set; }
 
-        /// <summary>
-        /// Gets or sets converter type of the SQL command parameter value.
-        /// </summary>
-        /// <docgen category='SQL Statement' order='13' />
-        [DefaultValue(typeof(DatabaseParameterTypeSetter))]
-        public Type ParameterConverterType { get; set; }
-
         ///<summary>SQL Command Parameter Converter</summary>
-        public DatabaseParameterTypeSetter ParameterTypeSetter { get; set; }
+        private DatabaseParameterTypeSetter ParameterTypeSetter;
 
         /// <summary>
         /// 
@@ -681,7 +673,7 @@ namespace NLog.Targets
                     if (this.ParameterTypeSetter == null)
                     {
                         var p = command.CreateParameter();
-                        var converter = (DatabaseParameterTypeSetter)Activator.CreateInstance(this.ParameterConverterType);
+                        var converter = new DatabaseParameterTypeSetter();
                         converter.Resolve(p, this.ParameterDbTypePropertyName, this.Parameters);
                         this.ParameterTypeSetter = converter;
                     }

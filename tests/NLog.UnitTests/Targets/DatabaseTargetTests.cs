@@ -658,7 +658,6 @@ Dispose()
             Assert.NotNull(dt);
             dt.Initialize(c);
             Assert.Equal("DbType", dt.ParameterDbTypePropertyName);
-            Assert.Equal(typeof(DatabaseParameterTypeSetter), dt.ParameterConverterType);
         }
 
         [Fact]
@@ -684,7 +683,6 @@ Dispose()
             DatabaseTarget dt = c.FindTargetByName("dt") as DatabaseTarget;
             Assert.NotNull(dt);
             Assert.Equal("MockDbType", dt.ParameterDbTypePropertyName);
-            Assert.Equal(typeof(MockDatabaseParameterTypeSetter), dt.ParameterConverterType);
             dt.DBProvider = typeof(MockDbConnection).AssemblyQualifiedName;
             dt.Initialize(c);
             List<Exception> exceptions = new List<Exception>();
@@ -1942,10 +1940,6 @@ INSERT INTO NLogSqlLiteTestAppNames(Id, Name) VALUES (1, @appName);"">
             public override string ServerVersion => throw new NotImplementedException();
 
             public override ConnectionState State => throw new NotImplementedException();
-        }
-
-        public class MockDatabaseParameterTypeSetter : DatabaseParameterTypeSetter
-        {
         }
 
         private class SQLiteTest
