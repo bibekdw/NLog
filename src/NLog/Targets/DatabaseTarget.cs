@@ -672,7 +672,7 @@ namespace NLog.Targets
                 {
                     if (this.ParameterTypeSetter == null)
                     {
-                        var p = command.CreateParameter();
+                        var p = command.CreateParameter(); //note this will log a new item to the tracelog
                         var converter = new DatabaseParameterTypeSetter();
                         converter.Resolve(p, this.ParameterDbTypePropertyName, this.Parameters);
                         this.ParameterTypeSetter = converter;
