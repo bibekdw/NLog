@@ -83,9 +83,8 @@ namespace NLog.Targets
     [Target("Database")]
     public class DatabaseTarget : Target, IInstallable
     {
-        private IDbConnection _activeConnection = null;
+        private IDbConnection _activeConnection;
         private string _activeConnectionString;
-        private IDatabaseValueConverter _parameterValueConverter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DatabaseTarget" /> class.
@@ -273,18 +272,12 @@ namespace NLog.Targets
         public string ParameterDbTypePropertyName { get; set; }
 
         ///<summary>SQL Command Parameter Converter</summary>
-        private DatabaseParameterTypeSetter ParameterTypeSetter;
+        private DatabaseParameterTypeSetter _parameterTypeSetter;
 
         /// <summary>
-        /// 
+        /// Converter for parameter values
         /// </summary>
-        public IDatabaseValueConverter ParameterValueConverter
-        {
-            get => _parameterValueConverter ?? DefaultConverter;
-            set => _parameterValueConverter = value;
-        }
-
-        private static readonly IDatabaseValueConverter DefaultConverter = new DatabaseValueConverter();
+        public static IDatabaseValueConverter ParameterValueConverter { get; set; } = new DatabaseValueConverter();
 
         /// <summary>
         /// Gets the collection of parameters. Each parameter contains a mapping
@@ -666,16 +659,16 @@ namespace NLog.Targets
         /// </summary>
         protected void EnsureResolveParameterInfo(IDbCommand command)
         {
-            if (this.ParameterTypeSetter == null)
+            if (this._parameterTypeSetter == null)
             {
                 lock (this.SyncRoot)
                 {
-                    if (this.ParameterTypeSetter == null)
+                    if (this._parameterTypeSetter == null)
                     {
                         var p = command.CreateParameter(); //note this will log a new item to the tracelog
                         var converter = new DatabaseParameterTypeSetter();
                         converter.Resolve(p, this.ParameterDbTypePropertyName, this.Parameters);
-                        this.ParameterTypeSetter = converter;
+                        this._parameterTypeSetter = converter;
                     }
                 }
             }
@@ -871,7 +864,7 @@ namespace NLog.Targets
                     p.Scale = par.Scale;
                 }
 
-                ParameterTypeSetter.SetParameterDbType(p, par);
+                _parameterTypeSetter.SetParameterDbType(p, par);
 
                 object value;
                 if (par.Layout.TryGetRawValue(logEvent, out var rawValue))

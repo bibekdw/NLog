@@ -61,7 +61,7 @@ namespace NLog.Targets
         /// Resolve Parameter DbType Property and DbType Value
         /// </summary>
         /// <docgen category='Parameter Options' order='10' />
-        public void Resolve(IDbDataParameter p, string dbTypePropertyName, IList<DatabaseParameterInfo> parameters)
+        public void Resolve(IDbDataParameter parameter, string dbTypePropertyName, IList<DatabaseParameterInfo> parametersInfo)
         {
             Type propertyType;
             if (string.IsNullOrEmpty(dbTypePropertyName) ||
@@ -73,19 +73,18 @@ namespace NLog.Targets
             else
             {
                 _defaultDbProperty = false;
-                if (!PropertyHelper.TryGetPropertyInfo(p, dbTypePropertyName, out var dbTypeProperty))
+                if (!PropertyHelper.TryGetPropertyInfo(parameter, dbTypePropertyName, out var dbTypeProperty))
                 {
                     throw new NLogConfigurationException(
-                        "Type '" + p.GetType().Name + "' has no property '" + dbTypePropertyName + "'.");
+                        "Type '" + parameter.GetType().Name + "' has no property '" + dbTypePropertyName + "'.");
                 }
 
                 _dbTypeProperty = dbTypeProperty;
-
                 propertyType = dbTypeProperty.PropertyType;
             }
 
             _propertyDbTypeValues = new Dictionary<DatabaseParameterInfo, int>();
-            foreach (var par in parameters)
+            foreach (var par in parametersInfo)
             {
                 if (!string.IsNullOrEmpty(par.DbType))
                 {
@@ -107,7 +106,7 @@ namespace NLog.Targets
                 }
                 else
                 {
-                    _dbTypeProperty.SetValue(p, (DbType)dbType, null);
+                    _dbTypeProperty.SetValue(p, dbType, null);
                 }
             }
         }
