@@ -508,7 +508,7 @@ Dispose()
 CreateParameter(0)
 Parameter #0 Direction=Input
 Parameter #0 Name=lvl
-Parameter #0 Value=2
+Parameter #0 Value=Info
 Add Parameter Parameter #0
 CreateParameter(1)
 Parameter #1 Direction=Input
@@ -519,7 +519,7 @@ ExecuteNonQuery: INSERT INTO FooBar VALUES(@lvl, @msg)
 CreateParameter(0)
 Parameter #0 Direction=Input
 Parameter #0 Name=lvl
-Parameter #0 Value=1
+Parameter #0 Value=Debug
 Add Parameter Parameter #0
 CreateParameter(1)
 Parameter #1 Direction=Input
@@ -672,7 +672,6 @@ Dispose()
                         <ConnectionString>FooBar</ConnectionString>
                         <CommandText>INSERT INTO FooBar VALUES(@message,@level,@date)</CommandText>
                         <ParameterDbTypePropertyName>MockDbType</ParameterDbTypePropertyName>
-                        <ParameterConverterType>NLog.UnitTests.Targets.DatabaseTargetTests+MockDatabaseParameterConverter, NLog.UnitTests</ParameterConverterType>
                         <parameter name='@message' layout='${message}'/>
                         <parameter name='@level' dbType='Int32' layout='${level:format=Ordinal}'/>
                         <parameter name='@date' dbType='DateTime' format='yyyy-MM-dd HH:mm:ss.fff' layout='${date:format=yyyy-MM-dd HH\:mm\:ss.fff}'/>
@@ -715,7 +714,7 @@ ExecuteNonQuery: INSERT INTO FooBar VALUES(@message,@level,@date)
 Close()
 Dispose()
 ";
-            expectedLog = string.Format(expectedLog, LogLevel.Info.Ordinal.ToString(), alogEvent.LogEvent.TimeStamp.ToString(CultureInfo.InvariantCulture));
+            expectedLog = string.Format(expectedLog, LogLevel.Info.ToString(), alogEvent.LogEvent.TimeStamp.ToString(CultureInfo.InvariantCulture));
             AssertLog(expectedLog);
         }
 
