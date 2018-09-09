@@ -34,6 +34,5 @@ build/
 *.sublime-*
 *.DotSettings
 *.vshost.*
-/.vs
-/src/.vs
-.cr
+.vs/
+.cr/
