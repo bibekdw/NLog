@@ -319,14 +319,20 @@
             var propertyOrderWithinCategory = new Dictionary<PropertyInfo, int>();
             var propertyDoc = new Dictionary<PropertyInfo, XmlElement>();
 
-            foreach (PropertyInfo propInfo in
-                this.GetProperties(type))
+            var propertyInfos = this.GetProperties(type).ToList();
+            foreach (PropertyInfo propInfo in propertyInfos)
             {
                 string category = null;
                 int order = 100;
 
-                if (this.TryGetMemberDoc(
-                    "P:" + propInfo.DeclaringType.FullName + "." + propInfo.Name, out memberDoc))
+
+                if (HasAttribute(type, "NLog.Config.NLogConfigurationIgnorePropertyAttribute"))
+                {
+                    //skip [NLogConfigurationIgnoreProperty]
+                    continue;
+                }
+
+                if (this.TryGetMemberDoc("P:" + propInfo.DeclaringType.FullName + "." + propInfo.Name, out memberDoc))
                 {
                     propertyDoc.Add(propInfo, memberDoc);
 
@@ -362,8 +368,7 @@
             {
                 string categoryName = category;
 
-                foreach (PropertyInfo propInfo in
-                    this.GetProperties(type)
+                foreach (PropertyInfo propInfo in propertyInfos
                         .Where(p => property2Category[p] == categoryName).OrderBy(
                             p => propertyOrderWithinCategory[p]).ThenBy(pi => pi.Name))
                 {
