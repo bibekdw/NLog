@@ -326,7 +326,7 @@
                 int order = 100;
 
 
-                if (HasAttribute(type, "NLog.Config.NLogConfigurationIgnorePropertyAttribute"))
+                if (HasAttribute(propInfo, "NLog.Config.NLogConfigurationIgnorePropertyAttribute"))
                 {
                     Console.WriteLine("SKIP {0}.{1}, it has [NLogConfigurationIgnoreProperty]", type.Name, propInfo.Name);
                     continue;
