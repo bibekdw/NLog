@@ -35,7 +35,7 @@
 
 using System.Data;
 
-namespace NLog
+namespace NLog.Targets
 {
     /// <summary>
     /// Convert values
