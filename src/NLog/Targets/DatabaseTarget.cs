@@ -277,6 +277,8 @@ namespace NLog.Targets
         /// <summary>
         /// Converter for parameter values
         /// </summary>
+        [Advanced]
+        [NLogConfigurationIgnoreProperty]
         public static IDatabaseValueConverter ParameterValueConverter { get; set; } = new DatabaseValueConverter();
 
         /// <summary>
@@ -876,7 +878,7 @@ namespace NLog.Targets
                     string stringValue = RenderLogEvent(par.Layout, logEvent);
                     value = ParameterValueConverter.ConvertFromString(stringValue, p.DbType, par.Format);
                 }
-               
+
                 p.Value = value;
                 InternalLogger.Trace("  DatabaseTarget: Parameter: '{0}' = '{1}' ({2})", p.ParameterName, value, p.DbType);
                 command.Parameters.Add(p);
