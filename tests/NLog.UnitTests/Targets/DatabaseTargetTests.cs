@@ -372,10 +372,9 @@ Dispose()
 
             string expectedLog = @"Open('Server=.;Trusted_Connection=SSPI;').
 CreateParameter(0)
-CreateParameter(1)
-Parameter #1 Direction=Input
-Parameter #1 Name=paramOne
-Parameter #1 Value=SomeValue
+Parameter #0 Direction=Input
+Parameter #0 Name=paramOne
+Parameter #0 Value=SomeValue
 Add Parameter Parameter #0
 ExecuteNonQuery: INSERT INTO dbo.SomeTable(SomeColumn) SELECT @paramOne WHERE NOT EXISTS(SELECT 1 FROM dbo.SomeOtherTable WHERE SomeColumn = @paramOne);
 Close()
@@ -428,21 +427,20 @@ Dispose()
 
             string expectedLog = @"Open('Server=.;Trusted_Connection=SSPI;').
 CreateParameter(0)
+Parameter #0 Direction=Input
+Parameter #0 Name=msg
+Parameter #0 Value=msg1
+Add Parameter Parameter #0
 CreateParameter(1)
 Parameter #1 Direction=Input
-Parameter #1 Name=msg
-Parameter #1 Value=msg1
+Parameter #1 Name=lvl
+Parameter #1 Value=Info
 Add Parameter Parameter #1
-CreateParameter(1)
+CreateParameter(2)
 Parameter #2 Direction=Input
-Parameter #2 Name=lvl
-Parameter #2 Value=Info
+Parameter #2 Name=lg
+Parameter #2 Value=MyLogger
 Add Parameter Parameter #2
-CreateParameter(3)
-Parameter #3 Direction=Input
-Parameter #3 Name=lg
-Parameter #3 Value=MyLogger
-Add Parameter Parameter #3
 ExecuteNonQuery: INSERT INTO FooBar VALUES(@msg, @lvl, @lg)
 CreateParameter(0)
 Parameter #0 Direction=Input
