@@ -659,7 +659,7 @@ namespace NLog.Targets
         /// <summary>
         /// Resolve Parameter DbType And Value Converter
         /// </summary>
-        protected void EnsureResolveParameterInfo(IDbCommand command)
+        protected void EnsureResolveParameterInfo(IDbCommand command, IDbDataParameter dbParameter)
         {
             if (this._parameterTypeSetter == null)
             {
@@ -667,9 +667,8 @@ namespace NLog.Targets
                 {
                     if (this._parameterTypeSetter == null)
                     {
-                        var p = command.CreateParameter(); //note this will log a new item to the tracelog
                         var converter = new DatabaseParameterTypeSetter();
-                        converter.Resolve(p, this.ParameterDbTypePropertyName, this.Parameters);
+                        converter.Resolve(dbParameter, this.ParameterDbTypePropertyName, this.Parameters);
                         this._parameterTypeSetter = converter;
                     }
                 }
@@ -834,17 +833,11 @@ namespace NLog.Targets
         /// <param name="logEvent">The log event to base the parameter's layout rendering on.</param>
         private void AddParametersToCommand(IDbCommand command, IList<DatabaseParameterInfo> databaseParameterInfos, LogEventInfo logEvent)
         {
-            if (databaseParameterInfos.Count > 0)
-            {
-                //todo move to init?
-                //todo fixme! AddParametersToCommand also called for installationparameters, so state could be wrong in ParameterTypeSetter 
-                EnsureResolveParameterInfo(command);
-            }
-
             for (int i = 0; i < databaseParameterInfos.Count; ++i)
             {
                 DatabaseParameterInfo par = databaseParameterInfos[i];
                 IDbDataParameter p = command.CreateParameter();
+                EnsureResolveParameterInfo(command, p);
                 p.Direction = ParameterDirection.Input;
                 if (par.Name != null)
                 {
