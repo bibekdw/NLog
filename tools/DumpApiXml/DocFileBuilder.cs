@@ -328,7 +328,7 @@
 
                 if (HasAttribute(type, "NLog.Config.NLogConfigurationIgnorePropertyAttribute"))
                 {
-                    //skip [NLogConfigurationIgnoreProperty]
+                    Console.WriteLine("SKIP {0}.{1}, it has [NLogConfigurationIgnoreProperty]", type.Name, propInfo.Name);
                     continue;
                 }
 
