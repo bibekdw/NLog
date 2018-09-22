@@ -352,9 +352,7 @@
                     category = "Other";
                 }
 
-                int categoryOrder;
-
-                if (!categories.TryGetValue(category, out categoryOrder))
+                if (!categories.TryGetValue(category, out _))
                 {
                     categories.Add(category, 100 + categories.Count);
                 }
@@ -369,6 +367,7 @@
                 string categoryName = category;
 
                 foreach (PropertyInfo propInfo in propertyInfos
+                    .Where(p => property2Category.ContainsKey(p) && propertyOrderWithinCategory.ContainsKey(p))
                         .Where(p => property2Category[p] == categoryName).OrderBy(
                             p => propertyOrderWithinCategory[p]).ThenBy(pi => pi.Name))
                 {
