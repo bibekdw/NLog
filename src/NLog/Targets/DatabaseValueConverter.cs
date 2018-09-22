@@ -59,7 +59,7 @@ namespace NLog.Targets
                 case DbType.Decimal:
                 case DbType.Currency:
                 case DbType.VarNumeric:
-                    return decimal.Parse(value);
+                    return decimal.Parse(value); 
                 case DbType.Double:
                     return double.Parse(value);
                 case DbType.Single:

@@ -416,7 +416,7 @@ namespace NLog.Targets
                         InternalLogger.Warn(ex, "DatabaseTarget(Name={0}): DbConnectionStringBuilder failed to parse '{1}' ConnectionString", Name, ConnectionStringName);
                     else
 #endif
-                        InternalLogger.Warn(ex, "DatabaseTarget(Name={0}): DbConnectionStringBuilder failed to parse ConnectionString", Name);
+                    InternalLogger.Warn(ex, "DatabaseTarget(Name={0}): DbConnectionStringBuilder failed to parse ConnectionString", Name);
                 }
             }
 
@@ -836,50 +836,132 @@ namespace NLog.Targets
             for (int i = 0; i < databaseParameterInfos.Count; ++i)
             {
                 DatabaseParameterInfo par = databaseParameterInfos[i];
-                IDbDataParameter p = command.CreateParameter();
-                EnsureResolveParameterInfo(command, p);
-                p.Direction = ParameterDirection.Input;
+                IDbDataParameter dbParameter = command.CreateParameter();
+                EnsureResolveParameterInfo(command, dbParameter);
+                dbParameter.Direction = ParameterDirection.Input;
                 if (par.Name != null)
                 {
-                    p.ParameterName = par.Name;
+                    dbParameter.ParameterName = par.Name;
                 }
 
                 if (par.Size != 0)
                 {
-                    p.Size = par.Size;
+                    dbParameter.Size = par.Size;
                 }
 
                 if (par.Precision != 0)
                 {
-                    p.Precision = par.Precision;
+                    dbParameter.Precision = par.Precision;
                 }
 
                 if (par.Scale != 0)
                 {
-                    p.Scale = par.Scale;
+                    dbParameter.Scale = par.Scale;
                 }
 
-                _parameterTypeSetter.SetParameterDbType(p, par);
-
+                _parameterTypeSetter.SetParameterDbType(dbParameter, par);
                 object value;
-                if (par.Layout.TryGetRawValue(logEvent, out var rawValue))
+
+                try
                 {
-                    InternalLogger.Trace("  DatabaseTarget: got raw value for '{0}'", p.ParameterName);
-                    value = ParameterValueConverter.ConvertFromObject(rawValue, p.DbType, par);
+                    value = GetParameterValue(logEvent, par, dbParameter.ParameterName, dbParameter.DbType);
                 }
-                else
+                catch (Exception exception)
                 {
-                    InternalLogger.Trace("  DatabaseTarget: got string value for '{0}'", p.ParameterName);
-                    string stringValue = RenderLogEvent(par.Layout, logEvent);
-                    value = ParameterValueConverter.ConvertFromString(stringValue, p.DbType, par);
+                    // enhance context. Already checked for must-rethrow 
+                    exception.Data["parameter"] = dbParameter;
+                    throw;
                 }
 
-                p.Value = value;
-                InternalLogger.Trace("  DatabaseTarget: Parameter: '{0}' = '{1}' ({2})", p.ParameterName, value, p.DbType);
-                command.Parameters.Add(p);
+
+                dbParameter.Value = value;
+                InternalLogger.Trace("  DatabaseTarget: Parameter: '{0}' = '{1}' ({2})", dbParameter.ParameterName, value, dbParameter.DbType);
+                command.Parameters.Add(dbParameter);
 
 
             }
+        }
+
+        /// <summary>
+        /// Get (converted) parameter value, including fallbacks
+        /// </summary>
+        /// <param name="logEvent">Current logevent.</param>
+        /// <param name="parameterInfo">Parameter config</param>
+        /// <param name="parameterName"></param>
+        /// <param name="dbType"></param>
+        /// <returns></returns>
+        private object GetParameterValue(LogEventInfo logEvent, DatabaseParameterInfo parameterInfo, string parameterName, DbType dbType)
+        {
+            //returns: should rethrow
+            bool HandleException(Exception exception, string errorMessage)
+            {
+                exception.Data["parameterInfo"] = parameterInfo;
+
+                var errorPreMessage = "DatabaseTarget: parameter '{0}'";
+                InternalLogger.Error(exception, $"  {errorPreMessage}: {errorMessage}", parameterName, dbType);
+
+                if (exception.MustBeRethrownImmediately())
+                {
+                    return true;
+                }
+
+                InternalLogger.Trace("DatabaseTarget(Name={0}): Close connection because of exception", Name);
+                CloseConnection();
+
+                if (exception.MustBeRethrown())
+                {
+                    return true;
+                }
+
+                return false;
+            }
+
+            object value = null;
+            var valueSet = false;
+            if (parameterInfo.Layout.TryGetRawValue(logEvent, out var rawValue))
+            {
+                try
+                {
+                    InternalLogger.Trace("  DatabaseTarget: got raw value for '{0}'", parameterName);
+                    value = ParameterValueConverter.ConvertFromObject(rawValue, dbType, parameterInfo);
+                    valueSet = true;
+                }
+                catch (Exception exception)
+                {
+                    exception.Data["rawValue"] = rawValue;
+                    const string errorMessage = "converting object to '{1}` failed. Try render and parse.";
+                    var rethrow = HandleException(exception, errorMessage);
+                    if (rethrow)
+                    {
+                        throw;
+                    }
+                }
+            }
+
+            if (!valueSet)
+            {
+                InternalLogger.Trace("  DatabaseTarget: got string value for '{0}'", parameterName);
+                string stringValue = RenderLogEvent(parameterInfo.Layout, logEvent);
+                try
+                {
+
+                    value = ParameterValueConverter.ConvertFromString(stringValue, dbType, parameterInfo);
+                }
+                catch (Exception exception)
+                {
+                    exception.Data["stringValue"] = stringValue;
+                    const string errorMessage = "converting string to '{1}` failed. We use the stringValue";
+                    var rethrow = HandleException(exception, errorMessage);
+                    if (rethrow)
+                    {
+                        throw;
+                    }
+
+                    return stringValue;
+                }
+            }
+
+            return value;
         }
 
 #if NETSTANDARD1_0
