@@ -38,19 +38,22 @@ using System.Data;
 namespace NLog.Targets
 {
     /// <summary>
-    /// Convert values
+    /// Convert values for the database target
     /// </summary>
     public interface IDatabaseValueConverter
     {
         /// <summary>
         /// Convert layout value to parameter value
         /// </summary>
-        object ConvertFromString(string value, DbType dbType, string parseFormat);
+        /// <param name="value">Current value after rendering.</param>
+        /// <param name="dbType">Configured DbType, or DbType after setting the SqlDbType/OracleDyType property</param>
+        /// <param name="format">Format configured for this parameter. Could be used for parsing.</param>
+        object ConvertFromString(string value, DbType dbType, string format);
 
         /// <summary>
         /// Convert rawvalue to parameter value
         /// </summary>
-        /// <param name="rawValue"></param>
+        /// <param name="rawValue">Current rawvalue after rendering raw (non-string).</param>
         /// <param name="dbType">Configured DbType, or DbType after setting the SqlDbType/OracleDyType property</param>
         /// <param name="format">Format configured for this parameter.</param>
         /// <returns></returns>

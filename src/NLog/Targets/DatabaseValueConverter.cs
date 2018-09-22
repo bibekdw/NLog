@@ -39,12 +39,13 @@ using System.Globalization;
 
 namespace NLog.Targets
 {
+    /// <summary>
+    /// Convert values for the database target
+    /// </summary>
     internal class DatabaseValueConverter : IDatabaseValueConverter
     {
-        /// <summary>
-        /// convert layout value to parameter value
-        /// </summary>
-        public object ConvertFromString(string value, DbType dbType, string parseFormat)
+        /// <inheritdoc />
+        public object ConvertFromString(string value, DbType dbType, string format)
         {
             switch (dbType)
             {
@@ -66,16 +67,16 @@ namespace NLog.Targets
                 case DbType.DateTime2:
                 case DbType.Date:
                 case DbType.Time:
-                    var dateFormat = string.IsNullOrEmpty(parseFormat) ? "yyyy/MM/dd HH:mm:ss.fff" : parseFormat;
+                    var dateFormat = string.IsNullOrEmpty(format) ? "yyyy/MM/dd HH:mm:ss.fff" : format;
                     return DateTime.ParseExact(value, dateFormat, null);
                 case DbType.DateTimeOffset:
-                    var dateOffsetFormat = string.IsNullOrEmpty(parseFormat) ? "yyyy/MM/dd HH:mm:ss.fff zzz" : parseFormat;
+                    var dateOffsetFormat = string.IsNullOrEmpty(format) ? "yyyy/MM/dd HH:mm:ss.fff zzz" : format;
                     return DateTimeOffset.ParseExact(value, dateOffsetFormat, null);
                 case DbType.Guid:
 #if NET3_5
                     return new Guid(value);
 #else
-                    return string.IsNullOrEmpty(parseFormat) ? Guid.Parse(value) : Guid.ParseExact(value, parseFormat);
+                    return string.IsNullOrEmpty(format) ? Guid.Parse(value) : Guid.ParseExact(value, format);
 #endif
                 case DbType.Byte:
                     return byte.Parse(value);
