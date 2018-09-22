@@ -34,6 +34,7 @@
 #if !SILVERLIGHT && !__IOS__ && !__ANDROID__
 
 using System.Data;
+using JetBrains.Annotations;
 
 namespace NLog.Targets
 {
@@ -47,17 +48,18 @@ namespace NLog.Targets
         /// </summary>
         /// <param name="value">Current value after rendering.</param>
         /// <param name="dbType">Configured DbType, or DbType after setting the SqlDbType/OracleDyType property</param>
-        /// <param name="format">Format configured for this parameter. Could be used for parsing.</param>
-        object ConvertFromString(string value, DbType dbType, string format);
+        /// <param name="parameterInfo">The configured parameterInfo.</param>
+        /// <returns>Converted object that suits with <paramref name="dbType"/>.</returns>
+        object ConvertFromString(string value, DbType dbType, [NotNull] DatabaseParameterInfo parameterInfo);
 
         /// <summary>
         /// Convert rawvalue to parameter value
         /// </summary>
         /// <param name="rawValue">Current rawvalue after rendering raw (non-string).</param>
         /// <param name="dbType">Configured DbType, or DbType after setting the SqlDbType/OracleDyType property</param>
-        /// <param name="format">Format configured for this parameter.</param>
-        /// <returns></returns>
-        object ConvertFromObject(object rawValue, DbType dbType, string format);
+        /// <param name="parameterInfo">The configured parameterInfo.</param>
+        /// <returns>Converted object that suits with <paramref name="dbType"/>.</returns>
+        object ConvertFromObject(object rawValue, DbType dbType, [NotNull] DatabaseParameterInfo parameterInfo);
     }
 }
 

@@ -45,8 +45,9 @@ namespace NLog.Targets
     internal class DatabaseValueConverter : IDatabaseValueConverter
     {
         /// <inheritdoc />
-        public object ConvertFromString(string value, DbType dbType, string format)
+        public object ConvertFromString(string value, DbType dbType, DatabaseParameterInfo parameterInfo)
         {
+            var format = parameterInfo.Format;
             switch (dbType)
             {
                 case DbType.String:
@@ -102,7 +103,7 @@ namespace NLog.Targets
         }
 
         /// <inheritdoc />
-        public object ConvertFromObject(object rawValue, DbType dbType, string format)
+        public object ConvertFromObject(object rawValue, DbType dbType, DatabaseParameterInfo parameterInfo)
         {
             // todo
             return rawValue;
