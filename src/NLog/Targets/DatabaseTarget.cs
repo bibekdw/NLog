@@ -864,10 +864,12 @@ namespace NLog.Targets
                 object value;
                 if (par.Layout.TryGetRawValue(logEvent, out var rawValue))
                 {
+                    InternalLogger.Trace("  DatabaseTarget: got raw value for '{0}'", p.ParameterName);
                     value = ParameterValueConverter.ConvertFromObject(rawValue, p.DbType, par);
                 }
                 else
                 {
+                    InternalLogger.Trace("  DatabaseTarget: got string value for '{0}'", p.ParameterName);
                     string stringValue = RenderLogEvent(par.Layout, logEvent);
                     value = ParameterValueConverter.ConvertFromString(stringValue, p.DbType, par);
                 }
