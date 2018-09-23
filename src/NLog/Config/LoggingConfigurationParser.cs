@@ -76,28 +76,56 @@ namespace NLog.Config
             bool? parseMessageTemplates = null;
 
             string internalLogFile = null;
+            var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
 
             foreach (var configItem in nlogConfig.Values)
             {
+                if (configItem.Key != null)
+                {
+                    dict[configItem.Key.Trim()] = configItem.Value;
+                }
+            }
+
+            //check first exception throwing and internal logging, so that erros in this section could be handled correctly
+            {
+                if (dict.TryGetValue("THROWEXCEPTIONS", out var val))
+                {
+                    LogFactory.ThrowExceptions = ParseBooleanValue("ThrowExceptions", val, LogFactory.ThrowExceptions);
+                }
+            }
+            {
+                if (dict.TryGetValue("THROWCONFIGEXCEPTIONS", out var val))
+                {
+                    LogFactory.ThrowConfigExceptions = string.IsNullOrEmpty(val) ? (bool?)null : ParseBooleanValue("ThrowConfigExceptions", val, false);
+                }
+            }
+            {
+                if (dict.TryGetValue("INTERNALLOGLEVEL", out var val))
+                {
+                    // expanding variables not possible here, they are created later
+                    InternalLogger.LogLevel = ParseLogLevelSafe("InternalLogLevel", val, InternalLogger.LogLevel);
+                }
+            }
+
+            foreach (var configItem in dict)
+            {
                 switch (configItem.Key?.Trim().ToUpperInvariant())
                 {
-                    case "USEINVARIANTCULTURE": if (ParseBooleanValue(configItem.Value)) DefaultCultureInfo = CultureInfo.InvariantCulture; break;
-                    case "INTERNALLOGLEVEL": InternalLogger.LogLevel = LogLevel.FromString(configItem.Value); break;    // expanding variables not possible here, they are created later
+                    case "USEINVARIANTCULTURE": if (ParseBooleanValue(configItem.Key, configItem.Value, false)) DefaultCultureInfo = CultureInfo.InvariantCulture; break;
 #pragma warning disable 618
-                    case "EXCEPTIONLOGGINGOLDSTYLE": ExceptionLoggingOldStyle = ParseBooleanValue(configItem.Value); break;
+                    case "EXCEPTIONLOGGINGOLDSTYLE": ExceptionLoggingOldStyle = ParseBooleanValue(configItem.Key, configItem.Value, ExceptionLoggingOldStyle); break;
 #pragma warning restore 618
-                    case "THROWEXCEPTIONS": LogFactory.ThrowExceptions = ParseBooleanValue(configItem.Value); break;
-                    case "THROWCONFIGEXCEPTIONS": LogFactory.ThrowConfigExceptions = string.IsNullOrEmpty(configItem.Value) ? (bool?)null : ParseBooleanValue(configItem.Value); break;
-                    case "KEEPVARIABLESONRELOAD": LogFactory.KeepVariablesOnReload = ParseBooleanValue(configItem.Value); break;
-                    case "INTERNALLOGTOCONSOLE": InternalLogger.LogToConsole = ParseBooleanValue(configItem.Value); break;
-                    case "INTERNALLOGTOCONSOLEERROR": InternalLogger.LogToConsoleError = ParseBooleanValue(configItem.Value); break;
+                    case "KEEPVARIABLESONRELOAD": LogFactory.KeepVariablesOnReload = ParseBooleanValue(configItem.Key, configItem.Value, LogFactory.KeepVariablesOnReload); break;
+                    case "INTERNALLOGTOCONSOLE": InternalLogger.LogToConsole = ParseBooleanValue(configItem.Key, configItem.Value, InternalLogger.LogToConsole); break;
+                    case "INTERNALLOGTOCONSOLEERROR": InternalLogger.LogToConsoleError = ParseBooleanValue(configItem.Key, configItem.Value, InternalLogger.LogToConsoleError); break;
                     case "INTERNALLOGFILE": internalLogFile = configItem.Value?.Trim(); break;
 #if !SILVERLIGHT && !__IOS__ && !__ANDROID__
-                    case "INTERNALLOGTOTRACE": InternalLogger.LogToTrace = ParseBooleanValue(configItem.Value); break;
+                    case "INTERNALLOGTOTRACE": InternalLogger.LogToTrace = ParseBooleanValue(configItem.Key, configItem.Value, InternalLogger.LogToTrace); break;
 #endif
-                    case "INTERNALLOGINCLUDETIMESTAMP": InternalLogger.IncludeTimestamp = ParseBooleanValue(configItem.Value); break;
-                    case "GLOBALTHRESHOLD": LogFactory.GlobalThreshold = LogLevel.FromString(configItem.Value); break; // expanding variables not possible here, they are created later
-                    case "PARSEMESSAGETEMPLATES": parseMessageTemplates = string.IsNullOrEmpty(configItem.Value) ? (bool?)null : ParseBooleanValue(configItem.Value); break;
+                    case "INTERNALLOGINCLUDETIMESTAMP": InternalLogger.IncludeTimestamp = ParseBooleanValue(configItem.Key, configItem.Value, InternalLogger.IncludeTimestamp); break;
+                    case "GLOBALTHRESHOLD": LogFactory.GlobalThreshold = ParseLogLevelSafe(configItem.Key, configItem.Value, LogFactory.GlobalThreshold); break; // expanding variables not possible here, they are created later
+                    case "PARSEMESSAGETEMPLATES": parseMessageTemplates = string.IsNullOrEmpty(configItem.Value) ? (bool?)null : ParseBooleanValue(configItem.Key, configItem.Value, true); break;
                 }
             }
 
@@ -139,6 +167,33 @@ namespace NLog.Config
             foreach (var ruleChild in rulesList)
             {
                 ParseRulesElement(ruleChild, LoggingRules);
+            }
+        }
+
+        /// <summary>
+        /// Parse loglevel, but don't throw if exception throwing is disabled
+        /// </summary>
+        /// <param name="attributeName">Name of attribute for logging.</param>
+        /// <param name="attributeValue">Value of parse.</param>
+        /// <param name="default">Used if there is an exception</param>
+        /// <returns></returns>
+        private static LogLevel ParseLogLevelSafe(string attributeName, string attributeValue, LogLevel @default)
+        {
+            try
+            {
+                var internalLogLevel = LogLevel.FromString(attributeValue);
+                return internalLogLevel;
+            }
+            catch (Exception e)
+            {
+                const string message = "attribute '{0}': '{1}' isn't valid LogLevel. {2} will be used.";
+                var configException = new NLogConfigurationException(e, message, attributeName, attributeValue, @default);
+                if (configException.MustBeRethrown())
+                {
+                    throw;
+                }
+
+                return @default;
             }
         }
 
@@ -194,7 +249,7 @@ namespace NLog.Config
                         type = childProperty.Value;
                     }
                     else if (MatchesName(childProperty.Key, "assemblyFile"))
-                    { 
+                    {
                         assemblyFile = childProperty.Value;
                     }
                     else if (MatchesName(childProperty.Key, "assembly"))
@@ -428,15 +483,15 @@ namespace NLog.Config
                             ruleName = childProperty.Value;
                         break;
                     case "LOGGER": namePattern = childProperty.Value; break;
-                    case "ENABLED": enabled = ParseBooleanValue(childProperty.Value); break;
+                    case "ENABLED": enabled = ParseBooleanValue(childProperty.Key, childProperty.Value, true); break;
                     case "APPENDTO": writeTargets = childProperty.Value; break;
                     case "WRITETO": writeTargets = childProperty.Value; break;
-                    case "FINAL": final = ParseBooleanValue(childProperty.Value); break;
-                    case "LEVEL": enableLevels = new [] { LogLevelFromString(childProperty.Value) }; break;
-                    case "LEVELS": 
+                    case "FINAL": final = ParseBooleanValue(childProperty.Key, childProperty.Value, false); break;
+                    case "LEVEL": enableLevels = new[] { LogLevelFromString(childProperty.Value) }; break;
+                    case "LEVELS":
                         {
                             string[] tokens = CleanSpaces(childProperty.Value).Split(',');
-                            enableLevels = tokens.Where(t => !string.IsNullOrEmpty(t)).Select(t => LogLevelFromString(t));
+                            enableLevels = tokens.Where(t => !string.IsNullOrEmpty(t)).Select(LogLevelFromString);
                             break;
                         }
                     case "MINLEVEL": minLevel = LogLevelFromString(childProperty.Value).Ordinal; break;
@@ -554,8 +609,8 @@ namespace NLog.Config
         {
             targetsElement.AssertName("targets", "appenders");
 
-            string asyncValue = targetsElement.Values.Where(configItem => MatchesName(configItem.Key, "async")).Select(configItem => configItem.Value).FirstOrDefault();
-            bool asyncWrap = string.IsNullOrEmpty(asyncValue) ? false : ParseBooleanValue(asyncValue);
+            var asyncItem = targetsElement.Values.FirstOrDefault(configItem => MatchesName(configItem.Key, "async"));
+            bool asyncWrap = !string.IsNullOrEmpty(asyncItem.Value) && ParseBooleanValue(asyncItem.Key, asyncItem.Value, false);
 
             ILoggingConfigurationElement defaultWrapperElement = null;
             var typeNameToDefaultTargetParameters = new Dictionary<string, ILoggingConfigurationElement>(StringComparer.OrdinalIgnoreCase);
@@ -659,7 +714,7 @@ namespace NLog.Config
         }
 
         private bool ParseTargetWrapper(Dictionary<string, ILoggingConfigurationElement> typeNameToDefaultTargetParameters, string name, ILoggingConfigurationElement childElement,
-    WrapperTargetBase wrapper)
+        WrapperTargetBase wrapper)
         {
             if (IsTargetRefElement(name))
             {
@@ -680,7 +735,7 @@ namespace NLog.Config
 
                 Target newTarget = _configurationItemFactory.Targets.CreateInstance(type);
                 if (newTarget != null)
-                {                   
+                {
                     ParseTargetElement(newTarget, childElement, typeNameToDefaultTargetParameters);
                     if (newTarget.Name != null)
                     {
@@ -932,9 +987,30 @@ namespace NLog.Config
             return string.Equals(key?.Trim(), expectedKey, StringComparison.OrdinalIgnoreCase);
         }
 
-        private static bool ParseBooleanValue(string value)
+        /// <summary>
+        /// Parse boolean
+        /// </summary>
+        /// <param name="propertyName">Name of the property for logging.</param>
+        /// <param name="value">value to parse</param>
+        /// <param name="defaultValue">Default value to return if the parse failed</param>
+        /// <returns>Boolean attribute value or default.</returns>
+        private static bool ParseBooleanValue(string propertyName, string value, bool defaultValue)
         {
-            return Convert.ToBoolean(value?.Trim(), CultureInfo.InvariantCulture);
+            try
+            {
+                return Convert.ToBoolean(value, CultureInfo.InvariantCulture);
+            }
+            catch (Exception e)
+            {
+                const string message = "'{0}' hasn't a valid boolean value '{1}'. {2} will be used";
+                var configException = new NLogConfigurationException(e, message, propertyName, value, defaultValue);
+                if (configException.MustBeRethrown())
+                {
+                    throw;
+                }
+
+                return defaultValue;
+            }
         }
 
         private static bool IsTargetElement(string name)
