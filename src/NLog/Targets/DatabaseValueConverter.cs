@@ -47,61 +47,75 @@ namespace NLog.Targets
         /// <inheritdoc />
         public object ConvertFromString(string value, DbType dbType, DatabaseParameterInfo parameterInfo)
         {
+
+            if (value == null)
+            {
+                return null;
+            }
+
             var format = parameterInfo.Format;
+
             switch (dbType)
             {
                 case DbType.String:
                 case DbType.AnsiString:
                 case DbType.AnsiStringFixedLength: //todo truncate?
                     return value;
+            }
+
+            var trimmedValue = value.Trim();
+
+
+            switch (dbType)
+            {
                 case DbType.Boolean:
-                    return bool.Parse(value);
+                    return bool.Parse(trimmedValue);
                 case DbType.Decimal:
                 case DbType.Currency:
                 case DbType.VarNumeric:
-                    return decimal.Parse(value);
+                    return decimal.Parse(trimmedValue);
                 case DbType.Double:
-                    return double.Parse(value);
+                    return double.Parse(trimmedValue);
                 case DbType.Single:
-                    return float.Parse(value);
+                    return float.Parse(trimmedValue);
                 case DbType.Time:
-                    return TimeSpan.Parse(value);
+                    return TimeSpan.Parse(trimmedValue);
                 case DbType.DateTime:
                 case DbType.DateTime2:
                 case DbType.Date:
                     if (string.IsNullOrEmpty(format))
-                        return DateTime.Parse(value, CultureInfo.InvariantCulture);
+                        return DateTime.Parse(trimmedValue, CultureInfo.InvariantCulture);
                     else
-                        return DateTime.ParseExact(value, format, null);
+                        return DateTime.ParseExact(trimmedValue, format, null);
                 case DbType.DateTimeOffset:
                     if (string.IsNullOrEmpty(format))
-                        return DateTimeOffset.Parse(value, CultureInfo.InvariantCulture);
+                        return DateTimeOffset.Parse(trimmedValue, CultureInfo.InvariantCulture);
                     else
-                        return DateTimeOffset.ParseExact(value, format, null);
+                        return DateTimeOffset.ParseExact(trimmedValue, format, null);
                 case DbType.Guid:
 #if NET3_5
-                    return new Guid(value);
+                    return new Guid(trimmedValue);
 #else
-                    return string.IsNullOrEmpty(format) ? Guid.Parse(value) : Guid.ParseExact(value, format);
+                    return string.IsNullOrEmpty(format) ? Guid.Parse(trimmedValue) : Guid.ParseExact(trimmedValue, format);
 #endif
                 case DbType.Byte:
-                    return byte.Parse(value);
+                    return byte.Parse(trimmedValue);
                 case DbType.SByte:
-                    return sbyte.Parse(value);
+                    return sbyte.Parse(trimmedValue);
                 case DbType.Int16:
-                    return short.Parse(value);
+                    return short.Parse(trimmedValue);
                 case DbType.Int32:
-                    return int.Parse(value);
+                    return int.Parse(trimmedValue);
                 case DbType.Int64:
-                    return long.Parse(value);
+                    return long.Parse(trimmedValue);
                 case DbType.UInt16:
-                    return ushort.Parse(value);
+                    return ushort.Parse(trimmedValue);
                 case DbType.UInt32:
-                    return uint.Parse(value);
+                    return uint.Parse(trimmedValue);
                 case DbType.UInt64:
-                    return ulong.Parse(value);
+                    return ulong.Parse(trimmedValue);
                 case DbType.Binary:
-                    return ConvertToBinary(value);
+                    return ConvertToBinary(trimmedValue);
                 default:
                     return value;
             }

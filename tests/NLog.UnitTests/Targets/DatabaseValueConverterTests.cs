@@ -32,6 +32,7 @@ namespace NLog.UnitTests.Targets
         public static IEnumerable<object[]> ConvertFromStringTestCases()
         {
             yield return new object[] { "3", DbType.Int16, (short)3 };
+            yield return new object[] { " 3 ", DbType.Int16, (short)3 };
             yield return new object[] { "3", DbType.Int32, 3 };
             yield return new object[] { "3", DbType.Int64, (long)3 };
             yield return new object[] { "3", DbType.UInt16, (ushort)3 };
