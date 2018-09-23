@@ -59,20 +59,25 @@ namespace NLog.Targets
                 case DbType.Decimal:
                 case DbType.Currency:
                 case DbType.VarNumeric:
-                    return decimal.Parse(value); 
+                    return decimal.Parse(value);
                 case DbType.Double:
                     return double.Parse(value);
                 case DbType.Single:
                     return float.Parse(value);
+                case DbType.Time:
+                    return TimeSpan.Parse(value);
                 case DbType.DateTime:
                 case DbType.DateTime2:
                 case DbType.Date:
-                case DbType.Time:
-                    var dateFormat = string.IsNullOrEmpty(format) ? "yyyy/MM/dd HH:mm:ss.fff" : format;
-                    return DateTime.ParseExact(value, dateFormat, null);
+                    if (string.IsNullOrEmpty(format))
+                        return DateTime.Parse(value, CultureInfo.InvariantCulture);
+                    else
+                        return DateTime.ParseExact(value, format, null);
                 case DbType.DateTimeOffset:
-                    var dateOffsetFormat = string.IsNullOrEmpty(format) ? "yyyy/MM/dd HH:mm:ss.fff zzz" : format;
-                    return DateTimeOffset.ParseExact(value, dateOffsetFormat, null);
+                    if (string.IsNullOrEmpty(format))
+                        return DateTimeOffset.Parse(value, CultureInfo.InvariantCulture);
+                    else
+                        return DateTimeOffset.ParseExact(value, format, null);
                 case DbType.Guid:
 #if NET3_5
                     return new Guid(value);
